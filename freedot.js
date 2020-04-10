@@ -1,4 +1,4 @@
-function freedot(posx,posy,bxwidth,col,hooked=false)
+function freedot(posx,posy,bxwidth,col,hooked=false,iam_ai=false)
 	{
 		this.onScreen=true;
 		this.posx=posx;
@@ -7,8 +7,12 @@ function freedot(posx,posy,bxwidth,col,hooked=false)
 		this.hooked=hooked;
 		this.movable=false;
 		this.j=-1;
+		this.ai=iam_ai;
 
 		this.circle_relative=circle_relative;
+
+		this.velx=0;
+		this.vely=0;
 		
 
 		
@@ -103,11 +107,20 @@ function freedot(posx,posy,bxwidth,col,hooked=false)
 					{
 						if((this.hooked)&&!this.movable)
 							{
+								if(!this.ai)
+								{
 								this.posx=mouseX;
 								this.posy=mouseY;
+								}
+								else
+								{
+									this.posx+=this.velx;
+									this.posy+=this.vely;
+								}
 							}
 						if(this.movable)
 							{
+
 								this.posy+=5;
 								this.hook_on_to_box();
 								if(this.posy>canvas.height)

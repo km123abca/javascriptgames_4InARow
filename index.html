@@ -12,6 +12,7 @@
 	<script src='gameboard.js'></script>
 	<script src='freedot.js'></script>	
 	<script src='randomObj.js'></script>	
+	<script src='machinex.js'></script>	
 
 	<script>
 	var mouseX=0,mouseY=0;
@@ -134,7 +135,7 @@
 	var str2print3="";
 	var str2print5="";
 	var highscore=0;	
-
+	var sys_counter=0;
 	
 
 	
@@ -159,21 +160,40 @@
 	var num_rows=6;
 	var num_columns=7;
 	var gbox=new gameboard({'x':boardx,'y':boardy});
-	var whoseTurn='black';
-	var hookLock=false;
+
+	var whoseTurn='black';//who is to play next
+
+	var hookLock=false;  //hook lock prevents any other dot from being hooked when a dot is already hooked
 	var boardLock=false;
 	var str2print3="Drag the coin up and drop";
+
+	var ai_player='white';//this should be black white or none depending on who is ai
 
 
 	var indidots=[];
 	var ros=[];
 	indidots.push(new freedot(0.22*canvas.width,0.68*canvas.height,com_box_width,'black'));
 	indidots.push(new freedot(0.8*canvas.width,0.68*canvas.height,com_box_width,'white'));
+
+
+
+	if(ai_player!='none')
+		var m1=new machinex(ai_player);
+
 	ros.push(new randomObj('arrow',0.17*canvas.width,0.85*canvas.width,0.68*canvas.height));
+
+
 
 	//##################################################################################################
 
 	//###### Functions for this program###########
+	function run_counter()
+		{
+			sys_counter+=1;
+			if(sys_counter>1000) 
+				sys_counter=0;
+			return sys_counter;
+		}
 	function toggle_turn()
 		{
 			if(whoseTurn=='black') 
@@ -205,17 +225,19 @@
 		}
 	function handleMouseDown()
 		{
-			if(boardLock)
+			if(whoseTurn==ai_player)
+				return false;   //do not proceed if ai is playing next
+			if(boardLock)       //boardlock is true when there is a winner and when all playing must stop
 				return false;
 			var colx='no_col';
-			if(hookLock) 
+			if(hookLock)        //hookLock tells whether any other dot is hooked, unset by freedot when it has settled on a box
 				return false;
 			for(var dotx of indidots)
 				{
 					if(!dotx.hooked)
 					{
 						if(dotx.clicked_me(mouseX,mouseY))
-							if(dotx.cold==whoseTurn)
+							if(dotx.cold==whoseTurn)     //whose turn decides whether black should play or whether whtite shoudl play
 							colx=dotx.cold;
 					}
 				}
@@ -228,6 +250,7 @@
 
 	function handleMouseUp()
 		{
+
 			if(boardLock)
 				return false;
 			for(var dotx of indidots)
@@ -324,6 +347,14 @@
 									dotx.move();
 								dotx.dr_w();
 								}
+
+
+							if(ai_player!='none')
+								{
+									m1.checkIfTimeToPlay();
+									m1.move_dot();
+								}
+
 							for(var ro of ros)
 								{
 									if(!ro.onScreen) continue;
@@ -333,7 +364,7 @@
 									ro.move();
 								}
 
-							
+							str2print5="indidots has "+indidots.length+" members";
 
 							flush_out_list(indidots);
 							announceMouse();
@@ -342,6 +373,8 @@
 							w2screen(str2print,20,30);
 							w2screen(str2print2,20,80);
 							w2screen(str2print3,0.3*canvas.width,0.08*canvas.height);
+							w2screen(str2print5,20,canvas.height-80);
+
                             };
 	  	     			setInterval(loop, 1000 / 60);	  		
 					}
