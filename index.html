@@ -1,0 +1,355 @@
+<head>
+</head>
+
+
+<body>
+<canvas style='border:3px solid black;' onmousemove="trackMouse(event)">
+  
+</canvas>
+
+	<script src='hfns.js'></script>
+	<script src='box.js'></script>	
+	<script src='gameboard.js'></script>
+	<script src='freedot.js'></script>	
+	<script src='randomObj.js'></script>	
+
+	<script>
+	var mouseX=0,mouseY=0;
+		function w2screen(strr="",px=20,py=30)
+			{
+			ctx.font="40px Algerian";
+			ctx.fillStyle='#FF0000';
+			ctx.fillText(strr,px,py);
+			}
+	</script>
+
+
+	<script>
+			function trackMouse(e)
+					{
+					mouseX=e.clientX-5;
+					mouseY=e.clientY-10;
+					};
+			function announceMouse()
+					{
+					str2print='mousePosition:'+(mouseX/canvas.width).toFixed(2)+','+(mouseY/canvas.height).toFixed(2);
+					//w2screen(mouseX+','+mouseY);
+					}
+			function gc(c)
+					{
+					var coldict={'red':'#560e5a','green':'#044484'};
+					return coldict[c];
+					}
+
+			function remove_element(arr,remlist)
+					{
+						for (var k in remlist)
+						{
+							arr.splice(remlist[k],1);
+							for(var j in remlist)
+								remlist[j]=remlist[j]-1;
+						}
+					}
+			function flush_out_list(arr)
+					{
+						var empty_list=[];
+						for(var i=0;i<arr.length;i++)
+							{
+								if(!arr[i].onScreen)
+									empty_list.push(i);
+							}
+						remove_element(arr,empty_list);
+					}
+
+			function toggle_pos()
+				{
+					if(pauseSc) pauseSc=false;
+					else pauseSc=true;
+				}
+
+
+		    function get_stuff_from_parent_url(pivot_word='=',pos=0)
+					{
+						var pv=pivot_word,extracted_variable;
+			   	 		if(parent.document.URL.indexOf('=')!=-1)
+						    {
+						    	var symb_pos=parseInt(parent.document.URL.indexOf(pv,pos));
+						    	var num_chars= parent.document.URL.length-symb_pos;			    	
+						    	
+								extracted_variable=(parent.document.URL.substr(symb_pos+1, num_chars));	
+						    }
+						if(extracted_variable==-1)
+							return 'noSuchThing';
+						return extracted_variable;
+			    	}
+
+		    function get_all_vars_from_url(pv='=')
+			    	{    
+			    	    var pos=0,var_list=[],pos2=-1;	
+			    	    var itercontrol=0;
+
+			    	    while(pos2!=(parent.document.URL.length+1))
+			    	    	{
+				    		pos=parent.document.URL.indexOf(pv,pos);
+				    		if(pos==-1) 
+				    					{
+				    						console.log('pos break');
+				    						break;
+				    					}
+				    		pos2=parent.document.URL.indexOf('&',pos+1);
+				    		if(pos2==-1)
+				    			pos2=parent.document.URL.length+1;
+
+				    		var_list.push(parent.document.URL.substr(pos+1,pos2-pos-1));
+				    		pos+=1;
+
+				    		itercontrol+=1;
+				    		if(itercontrol>10) 
+				    						{console.log('alert break');break;}
+			    			}
+			    			return var_list;
+
+			    	}
+	</script>
+
+	
+
+	<script>
+	var g_j=1;	
+	var canvas = document.querySelector('canvas');
+    	ctx = canvas.getContext('2d');
+   	canvas.width = window.innerWidth-35;
+  	canvas.height = window.innerHeight-100;
+
+	var pauseSc=false,upPress=false,downPress=false,leftPress=false,rightPress=false,spacePress=false;
+	var gPress=false;
+	var fPress=false;
+	var enterPress=false;
+	    
+
+	//##########program specific variables#############
+	
+	var str2print="";
+	var str2print2="";
+	var str2print3="";
+	var str2print5="";
+	var highscore=0;	
+
+	
+
+	
+	var pauseAll=false;
+
+	
+	// console.log(canvas.width+','+canvas.height);
+    // console.log(get_all_vars_from_url());
+	//##################################################  
+
+	//####################################GAME VARIABLES WILL COME HERE ################################
+	var colors={'black':'#0000e6','white':'#66ffcc','hardblack':'#000066','hardwhite':'#00cc88'};
+	var colors_rev={'#0000e6':'black','#66ffcc':'white'};
+	var childDim=60;
+	var circle_relative=0.3;
+
+	//board position and box width
+	var boardx=canvas.width*0.3;
+	var boardy=canvas.height*0.2
+	var com_box_width=60;
+
+	var num_rows=6;
+	var num_columns=7;
+	var gbox=new gameboard({'x':boardx,'y':boardy});
+	var whoseTurn='black';
+	var hookLock=false;
+	var boardLock=false;
+	var str2print3="Drag the coin up and drop";
+
+
+	var indidots=[];
+	var ros=[];
+	indidots.push(new freedot(0.22*canvas.width,0.68*canvas.height,com_box_width,'black'));
+	indidots.push(new freedot(0.8*canvas.width,0.68*canvas.height,com_box_width,'white'));
+	ros.push(new randomObj('arrow',0.17*canvas.width,0.85*canvas.width,0.68*canvas.height));
+
+	//##################################################################################################
+
+	//###### Functions for this program###########
+	function toggle_turn()
+		{
+			if(whoseTurn=='black') 
+				{
+				whoseTurn='white';				
+				}
+			else 
+				{
+				whoseTurn='black';
+				}
+			ros[0].shiftPos(whoseTurn);
+
+		}
+	function inspect_release_point(px,py)
+		{
+			var ret_obj={'release':true,'xpos':0};
+			if(py>boardy)
+				return ret_obj;
+
+			var colnum=Math.floor((px-boardx)/com_box_width);
+			if((colnum>=0)&&(colnum<num_columns))
+				{
+					ret_obj['xpos']=boardx+com_box_width/2+colnum*com_box_width;
+					ret_obj['release']=false;
+					ret_obj['j']=colnum;
+				}
+			
+			return ret_obj;
+		}
+	function handleMouseDown()
+		{
+			if(boardLock)
+				return false;
+			var colx='no_col';
+			if(hookLock) 
+				return false;
+			for(var dotx of indidots)
+				{
+					if(!dotx.hooked)
+					{
+						if(dotx.clicked_me(mouseX,mouseY))
+							if(dotx.cold==whoseTurn)
+							colx=dotx.cold;
+					}
+				}
+			if(colx!='no_col')
+				{
+				indidots.push(new freedot(mouseX,mouseY,com_box_width,colx,true));
+				hookLock=true;
+				}
+		}
+
+	function handleMouseUp()
+		{
+			if(boardLock)
+				return false;
+			for(var dotx of indidots)
+				{ 
+					if(!dotx.onScreen) 
+						continue;
+					if(!dotx.hooked)
+						continue;
+					var fatex=inspect_release_point(mouseX,mouseY);
+					if(fatex['release'])
+						{
+						dotx.onScreen=false;
+						hookLock=false;
+						}
+					else
+						{
+							dotx.posx=fatex['xpos'];
+							dotx.j=fatex['j'];
+							// console.log('j:'+dotx.j);
+							dotx.movable=true;
+						}
+				}
+		}
+
+	//#############################################     
+     	
+
+
+	var resize = function () 
+		{
+  		canvas.width = window.innerWidth-35;
+  		canvas.height = window.innerHeight-100;
+		};
+			
+	window.addEventListener('resize', resize);
+
+	document.onkeypress=function (e)
+					{			
+					console.log(e.keyCode+' pressed');
+					if(e.keyCode==32)
+							{ 
+								spacePress=true;
+								toggle_pos();
+							}
+					
+					if(e.keyCode==119) upPress=true;
+					if(e.keyCode==100) rightPress=true;
+					if(e.keyCode==115) downPress=true;
+					if(e.keyCode==97) leftPress=true;
+					if(e.keyCode==103) gPress=true;
+					if(e.keyCode==102) fPress=true;
+					if(e.keyCode==13)  enterPress=true;				
+					};
+	document.onkeyup=function (e)
+					{
+					//console.log(e.keyCode+' released');
+					if(e.keyCode==32) spacePress=false;					
+					if(e.keyCode==87) upPress=false;
+					if(e.keyCode==68) rightPress=false;
+					if(e.keyCode==83) downPress=false;
+					if(e.keyCode==65) leftPress=false;
+					if(e.keyCode==71) gPress=false;
+					if(e.keyCode==70) fPress=false;
+					if(e.keyCode==13)  enterPress=false;
+					};
+	document.onmousedown=function(e)
+					{
+						handleMouseDown();
+					};
+	document.onmouseup=function(e)
+					{
+						handleMouseUp();
+					};
+
+	window.addEventListener('load', function () 
+					{
+				 	resize();						
+					
+			 		var loop = function () 
+							{              
+							ctx.clearRect(0,0,canvas.width,canvas.height);
+							ctx.fillStyle = '#000000';
+							ctx.fillRect(0,0,canvas.width, canvas.height);				
+							
+							gbox.draw_children();
+							if(!boardLock)
+								gbox.check_for_winner();
+							for(var dotx of indidots)
+								{
+								if(!dotx.onScreen) 
+									continue;
+								// if((pauseSc)||(!dotx.movable))  kmhere enable here for space control
+								if(!boardLock)
+									dotx.move();
+								dotx.dr_w();
+								}
+							for(var ro of ros)
+								{
+									if(!ro.onScreen) continue;
+
+									ro.dr_w();
+									if(!boardLock)
+									ro.move();
+								}
+
+							
+
+							flush_out_list(indidots);
+							announceMouse();
+
+							gbox.show_board();
+							w2screen(str2print,20,30);
+							w2screen(str2print2,20,80);
+							w2screen(str2print3,0.3*canvas.width,0.08*canvas.height);
+                            };
+	  	     			setInterval(loop, 1000 / 60);	  		
+					}
+				);
+
+
+	</script>
+
+	
+
+</body>
